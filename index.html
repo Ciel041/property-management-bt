@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IP &amp; Project Ownership Registry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,560;8..60,650&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --ink: #1b2430;
+      --muted: #5c6b7a;
+      --line: #e4ddd2;
+      --paper: #f6f3ee;
+      --card: #fffcf8;
+      --accent: #0e6e68;
+      --accent-dark: #0a524e;
+      --danger: #8d2f2f;
+      --danger-bg: #fdecec;
+      --ok: #1d6b3a;
+      --ok-bg: #e8f6ec;
+      --info-bg: #eef4f8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 100% -10%, #efe4d2 0%, transparent 55%),
+        var(--paper);
+      font-family: Outfit, "Segoe UI", sans-serif;
+    }
+
+    header, main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      padding: 36px 0 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: clamp(32px, 4vw, 46px);
+      font-weight: 650;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    .lede { margin: 8px 0 0; max-width: 46ch; color: var(--muted); }
+
+    .wallet {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    button, .file-btn {
+      font: inherit;
+      cursor: pointer;
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 18px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    button:hover, .file-btn:hover { background: var(--accent-dark); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    button.secondary:hover { background: #f3eee6; }
+
+    .account {
+      font-size: 13px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #status {
+      display: none;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      line-height: 1.45;
+    }
+
+    #status.show { display: block; }
+    #status.ok { background: var(--ok-bg); color: var(--ok); }
+    #status.err { background: var(--danger-bg); color: var(--danger); }
+    #status.info { background: var(--info-bg); color: #1d4e6f; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 { margin: 0 0 6px; font-size: 20px; }
+    .card p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      color: var(--ink);
+    }
+
+    input:focus { outline: 2px solid #b7ddd9; border-color: var(--accent); }
+
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+    .file-btn { display: inline-block; background: transparent; color: var(--accent); border: 1px solid #b7ddd9; }
+    input[type="file"] { display: none; }
+
+    .result {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      display: none;
+    }
+
+    .result.show { display: block; }
+
+    dl { margin: 0; display: grid; gap: 10px; }
+    dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    dd { margin: 2px 0 0; word-break: break-all; font-weight: 500; }
+
+    footer {
+      width: min(1040px, calc(100% - 32px));
+      margin: 8px auto 32px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 800px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .wallet { align-items: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">University mini-project</p>
+      <h1>Intellectual property registry</h1>
+      <p class="lede">Register a project against its document hash, then prove the file was unchanged by looking that hash up on-chain.</p>
+    </div>
+    <div class="wallet">
+      <button id="connectBtn" type="button">Connect MetaMask</button>
+      <div class="account" id="accountLabel">Wallet not connected</div>
+    </div>
+  </header>
+
+  <main>
+    <div id="status" role="status"></div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Register a project</h2>
+        <p>You become the owner. The contract stores the current block timestamp with the hash.</p>
+        <form id="registerForm">
+          <label for="title">Project title</label>
+          <input id="title" name="title" maxlength="200" placeholder="Campus solar microgrid study" required />
+
+          <label for="registerHash">Document hash (SHA-256)</label>
+          <input id="registerHash" name="hash" placeholder="64 hex characters or 0x… " spellcheck="false" required />
+
+          <div class="row">
+            <button type="submit" id="registerBtn">Register on-chain</button>
+            <label class="file-btn" for="hashFile">Hash a local file</label>
+            <input id="hashFile" type="file" />
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Verify integrity</h2>
+        <p>A matching record means this exact fingerprint was registered. A changed document will not match.</p>
+        <form id="verifyForm">
+          <label for="verifyHash">Document hash</label>
+          <input id="verifyHash" name="hash" placeholder="Paste the same SHA-256 hash" spellcheck="false" required />
+          <div class="row">
+            <button type="submit">Look up record</button>
+          </div>
+        </form>
+        <div class="result" id="verifyResult">
+          <dl>
+            <div><dt>Title</dt><dd id="outTitle">—</dd></div>
+            <div><dt>Owner</dt><dd id="outOwner">—</dd></div>
+            <div><dt>Registered</dt><dd id="outTime">—</dd></div>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Transfer ownership</h2>
+      <p>Only the current owner can transfer. Use a second wallet to show that an unauthorized transfer is rejected.</p>
+      <form id="transferForm">
+        <label for="transferHash">Document hash</label>
+        <input id="transferHash" placeholder="Registered document hash" spellcheck="false" required />
+        <label for="newOwner">New owner address</label>
+        <input id="newOwner" placeholder="0x…" spellcheck="false" required />
+        <div class="row">
+          <button type="submit">Transfer</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    Testnet demo only. This registry records a hash and an owner. It does not replace a legal filing.
+  </footer>
+
+  <script>
+    /**
+     * Paste the address Remix shows after a successful deploy.
+     * The ABI below matches IPRegistry.sol. If you change the contract,
+     * replace this ABI with the one copied from Remix.
+     */
+    const CONTRACT_ADDRESS = "PASTE_DEPLOYED_CONTRACT_ADDRESS";
+
+    const CONTRACT_ABI = [
+      "function registerProject(string title, bytes32 documentHash)",
+      "function transferOwnership(bytes32 documentHash, address newOwner)",
+      "function verifyDocument(bytes32 documentHash) view returns (string title, address owner, uint256 timestamp)",
+      "function isRegistered(bytes32 documentHash) view returns (bool)",
+      "event ProjectRegistered(bytes32 indexed documentHash, string title, address indexed owner, uint256 timestamp)",
+      "event OwnershipTransferred(bytes32 indexed documentHash, address indexed previousOwner, address indexed newOwner, uint256 timestamp)"
+    ];
+
+    const statusEl = document.getElementById("status");
+    const accountLabel = document.getElementById("accountLabel");
+    const connectBtn = document.getElementById("connectBtn");
+
+    let provider;
+    let signer;
+    let contract;
+    let userAddress;
+
+    function showStatus(kind, message) {
+      statusEl.className = "show " + kind;
+      statusEl.textContent = message;
+    }
+
+    function parseError(error) {
+      const code = error && (error.code || error.info?.error?.code);
+      if (code === 4001 || code === "ACTION_REJECTED") {
+        return "MetaMask rejected the request. Nothing was sent.";
+      }
+      if (error && error.reason) return error.reason;
+
+      const text = [
+        error && error.shortMessage,
+        error && error.message,
+        error && error.info && error.info.error && error.info.error.message
+      ].filter(Boolean).join(" ");
+
+      const quoted = text.match(/"([^"]+)"/);
+      if (quoted) return quoted[1];
+      if (/user rejected|user denied/i.test(text)) {
+        return "MetaMask rejected the request. Nothing was sent.";
+      }
+      return text || "The transaction failed.";
+    }
+
+    function toBytes32(input) {
+      const raw = String(input || "").trim();
+      if (!raw) throw new Error("Document hash is required.");
+
+      const hex = raw.slice(0, 2).toLowerCase() === "0x" ? raw.slice(2) : raw;
+      if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+        throw new Error("Document hash must be a 32-byte SHA-256 value (64 hex characters).");
+      }
+      if (/^0+$/.test(hex)) {
+        throw new Error("A zero hash is not a valid document fingerprint.");
+      }
+      return "0x" + hex.toLowerCase();
+    }
+
+    function requireConfiguredAddress() {
+      if (!ethers.isAddress(CONTRACT_ADDRESS)) {
+        throw new Error("Paste the deployed contract address into CONTRACT_ADDRESS in index.html, then reload.");
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        throw new Error("MetaMask was not found. Install the extension, then reload this page.");
+      }
+
+      requireConfiguredAddress();
+      provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const network = await provider.getNetwork();
+      if (network.chainId === 1n) {
+        throw new Error("This wallet is on Ethereum mainnet. Switch MetaMask to the same test network you used in Remix.");
+      }
+
+      signer = await provider.getSigner();
+      userAddress = accounts[0];
+      contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      const short = userAddress.slice(0, 6) + "…" + userAddress.slice(-4);
+      accountLabel.textContent = short + " · chain " + network.chainId.toString();
+      connectBtn.textContent = "Wallet connected";
+    }
+
+    async function ensureContract() {
+      if (!contract) await connectWallet();
+      requireConfiguredAddress();
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      try {
+        await connectWallet();
+        showStatus("ok", "Wallet connected. You can register, verify, or transfer.");
+      } catch (error) {
+        contract = null;
+        showStatus("err", parseError(error));
+      }
+    });
+
+    document.getElementById("hashFile").addEventListener("change", async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        const hex = Array.from(new Uint8Array(digest))
+          .map((part) => part.toString(16).padStart(2, "0"))
+          .join("");
+        document.getElementById("registerHash").value = "0x" + hex;
+        showStatus("info", "SHA-256 of “" + file.name + "” was written into the hash field. Submit the form to register it.");
+      } catch (error) {
+        showStatus("err", "Could not hash that file. " + (error.message || ""));
+      }
+    });
+
+    document.getElementById("registerForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("registerBtn");
+      button.disabled = true;
+      try {
+        const title = document.getElementById("title").value.trim();
+        if (!title) throw new Error("Project title is required.");
+        if (title.length > 200) throw new Error("Title must be 200 characters or fewer.");
+        const documentHash = toBytes32(document.getElementById("registerHash").value);
+
+        await ensureContract();
+        showStatus("info", "Confirm the registration in MetaMask…");
+        const tx = await contract.registerProject(title, documentHash);
+        showStatus("info", "Waiting for the transaction to be mined…");
+        const receipt = await tx.wait();
+        showStatus("ok", "Registered in block " + receipt.blockNumber + ". Owner: " + userAddress);
+      } catch (error) {
+        showStatus("err", parseError(error));
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById("verifyForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const result = document.getElementById("verifyResult");
+      try {
+        const documentHash = toBytes32(document.getElementById("verifyHash").value);
+        await ensureContract();
+        const record = await contract.verifyDocument(documentHash);
+        const seconds = Number(record.timestamp);
+        const when = new Date(seconds * 1000);
+
+        document.getElementById("outTitle").textContent = record.title;
+        document.getElementById("outOwner").textContent = record.owner;
+        document.getElementById("outTime").textContent =
+          when.toLocaleString() + " (" + seconds + ")";
+        result.classList.add("show");
+        showStatus("ok", "Record found. This hash is on the registry.");
+      } catch (error) {
+        result.classList.remove("show");
+        showStatus("err", parseError(error));
+      }
+    });
+
+    document.getElementById("transferForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const documentHash = toBytes32(document.getElementById("transferHash").value);
+        const newOwner = document.getElementById("newOwner").value.trim();
+        if (!ethers.isAddress(newOwner)) {
+          throw new Error("New owner must be a valid Ethereum address.");
+        }
+        await ensureContract();
+        showStatus("info", "Confirm the ownership transfer in MetaMask…");
+        const tx = await contract.transferOwnership(documentHash, newOwner);
+        const receipt = await tx.wait();
+        showStatus("ok", "Ownership transferred in block " + receipt.blockNumber + ".");
+      } catch (error) {
+        showStatus("err", parseError(error));
+      }
+    });
+
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", () => {
+        contract = null;
+        userAddress = null;
+        accountLabel.textContent = "Account changed. Connect again.";
+        connectBtn.textContent = "Connect MetaMask";
+      });
+      window.ethereum.on("chainChanged", () => window.location.reload());
+    }
+  </script>
+</body>
+</html>
